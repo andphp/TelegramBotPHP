@@ -76,20 +76,20 @@ class Telegram
      */
     const NEW_CHAT_MEMBER = 'new_chat_member';
     /**
+     * Constant for type New Chat Member.
+     */
+    const ADD_GROUP = 'add_group';
+
+    /**
      * Constant for type Left Chat Member.
      */
     const LEFT_CHAT_MEMBER = 'left_chat_member';
-    /**
-     * Constant for type My Chat Member.
-     */
-    const MY_CHAT_MEMBER = 'my_chat_member';
 
     private $bot_token = '';
     private $data = [];
     private $updates = [];
     private $log_errors;
     private $proxy;
-    private $update_type;
 
     /// Class constructor
 
@@ -827,6 +827,21 @@ class Telegram
         return @$this->data['message']['text'];
     }
 
+
+    /**
+     * \return the String Entities text.
+     */
+    public function Entities()
+    {
+
+        if(!isset($this->data['message']['entities']))
+        {
+            return false;
+        }
+
+        return $this->data['message']['entities'];
+    }
+
     public function Caption()
     {
         $type = $this->getUpdateType();
@@ -844,34 +859,27 @@ class Telegram
      */
     public function ChatID()
     {
-        $chat = $this->Chat();
-
-        return $chat['id'];
-    }
-
-    /**
-     * \return the Array chat.
-     */
-    public function Chat()
-    {
         $type = $this->getUpdateType();
         if ($type == self::CALLBACK_QUERY) {
-            return @$this->data['callback_query']['message']['chat'];
+            return @$this->data['callback_query']['message']['chat']['id'];
         }
         if ($type == self::CHANNEL_POST) {
-            return @$this->data['channel_post']['chat'];
+            return @$this->data['channel_post']['chat']['id'];
         }
         if ($type == self::EDITED_MESSAGE) {
-            return @$this->data['edited_message']['chat'];
+            return @$this->data['edited_message']['chat']['id'];
         }
         if ($type == self::INLINE_QUERY) {
-            return @$this->data['inline_query']['from'];
+            return @$this->data['inline_query']['from']['id'];
         }
-        if ($type == self::MY_CHAT_MEMBER) {
-            return @$this->data['my_chat_member']['chat'];
+        if ($type == self::NEW_CHAT_MEMBER) {
+            return @$this->data['inline_query']['from']['id'];
+        }
+        if ($type == self::ADD_GROUP) {
+            return @$this->data['my_chat_member']['chat']['id'];;
         }
 
-        return $this->data['message']['chat'];
+        return $this->data['message']['chat']['id'];
     }
 
     /// Get the message_id of the current message
@@ -896,6 +904,34 @@ class Telegram
     }
 
     /// Get the reply_to_message message_id of the current message
+    ///
+    ///
+    /**
+     * \return the String reply_to_message forward_from last_name.
+     */
+    public function isReplyToMessage()
+    {
+
+        if(isset($this->data['message']['reply_to_message']))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * \return the String reply_to_message forward_from last_name.
+     */
+    public function getReplyToMessage()
+    {
+
+        if(isset($this->data['message']['reply_to_message']))
+        {
+            return $this->data['message']['reply_to_message'];
+        }
+        return false;
+    }
+
 
     /**
      * \return the String reply_to_message message_id.
@@ -913,6 +949,29 @@ class Telegram
     public function ReplyToMessageFromUserID()
     {
         return $this->data['message']['reply_to_message']['forward_from']['id'];
+    }
+
+    /**
+     * \return the String reply_to_message forward_from first_name.
+     */
+    public function ReplyToMessageFromUserFirstname()
+    {
+        if(isset($this->data['message']['reply_to_message']['from']['first_name']))
+        {
+            return $this->data['message']['reply_to_message']['from']['first_name'];
+        }
+
+    }
+
+    /**
+     * \return the String reply_to_message forward_from last_name.
+     */
+    public function ReplyToMessageFromUserLastname()
+    {
+        if(isset($this->data['message']['reply_to_message']['from']['last_name']))
+        {
+            return $this->data['message']['reply_to_message']['from']['last_name'];
+        }
     }
 
     /// Get the inline_query of the current update
@@ -1030,6 +1089,9 @@ class Telegram
         if ($type == self::MESSAGE) {
             return @$this->data['message']['from']['last_name'];
         }
+        if ($type == self::PHOTO) {
+            return @$this->data['message']['from']['last_name'];
+        }
 
         return '';
     }
@@ -1082,9 +1144,6 @@ class Telegram
         if ($type == self::EDITED_MESSAGE) {
             return @$this->data['edited_message']['from']['id'];
         }
-        if ($type == self::INLINE_QUERY) {
-            return @$this->data['inline_query']['from']['id'];
-        }
 
         return $this->data['message']['from']['id'];
     }
@@ -1101,22 +1160,175 @@ class Telegram
         return $this->data['message']['forward_from_chat']['id'];
     }
 
+    /// 获取第二个图片的截图
+    public function PhotoFileId()
+    {
+        if(isset($this->data['message']['photo'][2]['file_id']))
+        {
+            return $this->data['message']['photo'][2]['file_id'];
+        }
+        return false;
+    }
+
+
+    /**返回是否是添加进入群
+     * @return bool
+     */
+    public function isAddGroup()
+    {
+
+        if(isset($this->data['my_chat_member']) && isset($this->data['my_chat_member']['new_chat_member']['status']) && $this->data['my_chat_member']['new_chat_member']['status'] == 'member' )
+        {
+            return true;
+        }
+
+
+        return false;
+    }
+
+
+    /**返回是否是添加进入群
+     * @return bool
+     */
+    public function isForward()
+    {
+
+        if(isset($this->data['message']['forward_from']))
+        {
+            return true;
+        }
+
+
+        return false;
+    }
+
+    /**返回添加入群提示中的用户ID
+     * @return false|mixed
+     */
+    public function addGroupFromId()
+    {
+
+        if(!isset($this->data['my_chat_member']['from']['id']))
+        {
+            return false;
+        }
+
+        return $this->data['my_chat_member']['from']['id'];
+    }
+
+    /**返回添加入群提示中的用户USERNAME
+     * @return false|mixed
+     */
+    public function addGroupFromUsername()
+    {
+
+        if(!isset($this->data['my_chat_member']['from']['username']))
+        {
+            return false;
+        }
+
+        return $this->data['my_chat_member']['from']['username'];
+    }
+
+
+    /**返回添加入群提示中的群的名字
+     * @return false|mixed
+     */
+    public function addGroupFromChatTitle()
+    {
+
+        if(!isset($this->data['my_chat_member']['chat']['title']))
+        {
+            return false;
+        }
+
+        return $this->data['my_chat_member']['chat']['title'];
+    }
+
+
+    /**返回是否离开群
+     * @return bool
+     */
+    public function isLeaveGroup()
+    {
+
+        if(isset($this->data['my_chat_member']) && isset($this->data['my_chat_member']['new_chat_member']['status']) && $this->data['my_chat_member']['new_chat_member']['status'] == 'left' )
+        {
+            return true;
+        }
+
+
+        return false;
+    }
+
+
     /// Tell if a message is from a group or user chat
+
 
     /**
      *  \return BOOLEAN true if the message is from a Group chat, false otherwise.
      */
     public function messageFromGroup()
     {
+
+        if(isset($this->data['callback_query']) && $this->data['callback_query']['message']['chat']['type'] == 'supergroup')
+        {
+            return true;
+        }
+
+        if(isset($this->data['callback_query']) && $this->data['callback_query']['message']['chat']['type'] == 'group')
+        {
+            return true;
+        }
+
+        if(isset($this->data['edited_message']) && $this->data['edited_message']['chat']['type'] == 'group')
+        {
+            return true;
+        }
+
+        if(isset($this->data['edited_message']) && $this->data['edited_message']['chat']['type'] == 'supergroup')
+        {
+            return true;
+        }
+
+
+        if(isset($this->data['my_chat_member']) && $this->data['my_chat_member']['chat']['type'] == 'supergroup')
+        {
+            return true;
+        }
+
+        if(isset($this->data['my_chat_member']) && $this->data['my_chat_member']['chat']['type'] == 'group')
+        {
+            return true;
+        }
+
+        if(isset($this->data['edited_message']) && $this->data['edited_message']['chat']['type'] == 'private')
+        {
+            return false;
+        }
+
+        if(isset($this->data['channel_post']))
+        {
+            return true;
+        }
+
+
+        if(!isset($this->data['message']['chat']['type']))
+        {
+            return false;
+        }
+
+
         if ($this->data['message']['chat']['type'] == 'private') {
             return false;
         }
+
+
 
         return true;
     }
 
     /// Get the contact phone number
-
     /**
      *  \return a String of the contact phone number.
      */
@@ -1143,6 +1355,24 @@ class Telegram
         return '';
     }
 
+    /// Get the title of the group chat
+
+    /**
+     *  \return a String of the title chat.
+     */
+    public function getGroupTitle()
+    {
+        if (isset($this->data['message']['chat']['title'])) {
+            return $this->data['message']['chat']['title'];
+        }
+
+        if (isset($this->data['edited_message']['chat']['title'])) {
+            return $this->data['edited_message']['chat']['title'];
+        }
+
+        return '';
+    }
+
     /// Set a custom keyboard
 
     /** This object represents a custom keyboard with reply options
@@ -1152,10 +1382,11 @@ class Telegram
      * \param $selective Boolean Use this parameter if you want to show the keyboard to specific users only. Targets: 1) users that are @mentioned in the text of the Message object; 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.
      * \return the requested keyboard as Json.
      */
-    public function buildKeyBoard(array $options, $onetime = false, $resize = false, $selective = true)
+    public function buildKeyBoard(array $options, $is_persistent = true ,$onetime = false, $resize = false, $selective = true)
     {
         $replyMarkup = [
             'keyboard'          => $options,
+            'is_persistent'     => $is_persistent,
             'one_time_keyboard' => $onetime,
             'resize_keyboard'   => $resize,
             'selective'         => $selective,
@@ -1714,100 +1945,60 @@ class Telegram
      */
     public function getUpdateType()
     {
-        if ($this->update_type) {
-            return $this->update_type;
-        }
-
         $update = $this->data;
         if (isset($update['inline_query'])) {
-            $this->update_type = self::INLINE_QUERY;
-
-            return $this->update_type;
+            return self::INLINE_QUERY;
         }
         if (isset($update['callback_query'])) {
-            $this->update_type = self::CALLBACK_QUERY;
-
-            return $this->update_type;
+            return self::CALLBACK_QUERY;
         }
         if (isset($update['edited_message'])) {
-            $this->update_type = self::EDITED_MESSAGE;
-
-            return $this->update_type;
+            return self::EDITED_MESSAGE;
         }
         if (isset($update['message']['text'])) {
-            $this->update_type = self::MESSAGE;
-
-            return $this->update_type;
+            return self::MESSAGE;
         }
         if (isset($update['message']['photo'])) {
-            $this->update_type = self::PHOTO;
-
-            return $this->update_type;
+            return self::PHOTO;
         }
         if (isset($update['message']['video'])) {
-            $this->update_type = self::VIDEO;
-
-            return $this->update_type;
+            return self::VIDEO;
         }
         if (isset($update['message']['audio'])) {
-            $this->update_type = self::AUDIO;
-
-            return $this->update_type;
+            return self::AUDIO;
         }
         if (isset($update['message']['voice'])) {
-            $this->update_type = self::VOICE;
-
-            return $this->update_type;
+            return self::VOICE;
         }
         if (isset($update['message']['contact'])) {
-            $this->update_type = self::CONTACT;
-
-            return $this->update_type;
+            return self::CONTACT;
         }
         if (isset($update['message']['location'])) {
-            $this->update_type = self::LOCATION;
-
-            return $this->update_type;
+            return self::LOCATION;
         }
         if (isset($update['message']['reply_to_message'])) {
-            $this->update_type = self::REPLY;
-
-            return $this->update_type;
+            return self::REPLY;
         }
         if (isset($update['message']['animation'])) {
-            $this->update_type = self::ANIMATION;
-
-            return $this->update_type;
+            return self::ANIMATION;
         }
         if (isset($update['message']['sticker'])) {
-            $this->update_type = self::STICKER;
-
-            return $this->update_type;
+            return self::STICKER;
         }
         if (isset($update['message']['document'])) {
-            $this->update_type = self::DOCUMENT;
-
-            return $this->update_type;
+            return self::DOCUMENT;
         }
         if (isset($update['message']['new_chat_member'])) {
-            $this->update_type = self::NEW_CHAT_MEMBER;
-
-            return $this->update_type;
+            return self::NEW_CHAT_MEMBER;
         }
         if (isset($update['message']['left_chat_member'])) {
-            $this->update_type = self::LEFT_CHAT_MEMBER;
-
-            return $this->update_type;
-        }
-        if (isset($update['my_chat_member'])) {
-            $this->update_type = self::MY_CHAT_MEMBER;
-
-            return $this->update_type;
+            return self::LEFT_CHAT_MEMBER;
         }
         if (isset($update['channel_post'])) {
-            $this->update_type = self::CHANNEL_POST;
-
-            return $this->update_type;
+            return self::CHANNEL_POST;
+        }
+        if (isset($update['my_chat_member'])) {
+            return self::ADD_GROUP;
         }
 
         return false;
@@ -1876,3 +2067,4 @@ if (!function_exists('curl_file_create')) {
             .($mimetype ? ";type=$mimetype" : '');
     }
 }
+
